@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Legal Document Upload</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="scene-bg"></div>
+    <main class="shell">
+      <section class="upload-card">
+        <header class="card-header">
+          <p class="eyebrow">Legal AI Intake</p>
+          <h1>Upload & Index Legal Documents</h1>
+          <p class="subtitle">
+            Upload either Bare Acts or Case Law with required metadata. The file is
+            processed and ingested into Qdrant from this form.
+          </p>
+        </header>
+
+        <form id="uploadForm" class="upload-form" novalidate>
+          <div class="field-grid">
+            <label class="field">
+              <span>Document Type</span>
+              <select id="docType" name="docType" required>
+                <option value="case_law">Case Law</option>
+                <option value="bare_act">Bare Act</option>
+              </select>
+            </label>
+
+            <label class="field field-file">
+              <span>PDF Document</span>
+              <input id="document" name="document" type="file" accept="application/pdf" required />
+            </label>
+
+            <label class="field">
+              <span>Citation</span>
+              <input id="citation" name="citation" type="text" placeholder="e.g. Indian Contract Act, 1872" required />
+            </label>
+
+            <label class="field">
+              <span>Judgment / Act Year</span>
+              <input id="judgmentDate" name="judgmentDate" type="text" placeholder="e.g. 1872" />
+            </label>
+
+            <label class="field">
+              <span>Jurisdiction</span>
+              <input id="jurisdiction" name="jurisdiction" type="text" value="India" />
+            </label>
+          </div>
+
+          <div id="caseFields" class="field-grid type-fields">
+            <label class="field">
+              <span>Case Name</span>
+              <input id="caseName" name="caseName" type="text" placeholder="e.g. Carlill v Carbolic Smoke Ball Co" />
+            </label>
+            <label class="field">
+              <span>Court</span>
+              <input id="court" name="court" type="text" placeholder="e.g. Supreme Court of India" />
+            </label>
+            <label class="field">
+              <span>Bench</span>
+              <input id="bench" name="bench" type="text" placeholder="Optional" />
+            </label>
+          </div>
+
+          <div id="bareActFields" class="field-grid type-fields hidden">
+            <label class="field">
+              <span>Act Name</span>
+              <input id="actName" name="actName" type="text" placeholder="e.g. Indian Contract Act" />
+            </label>
+            <label class="field">
+              <span>Section Number</span>
+              <input id="sectionNo" name="sectionNo" type="text" placeholder="Optional" />
+            </label>
+          </div>
+
+          <button id="submitBtn" class="submit-btn" type="submit">
+            <span class="btn-label">Upload & Start Indexing</span>
+            <span class="btn-loader" aria-hidden="true"></span>
+          </button>
+
+          <p id="statusBox" class="status-box" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
