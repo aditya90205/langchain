@@ -18,10 +18,10 @@
       <section class="upload-card">
         <header class="card-header">
           <p class="eyebrow">Legal AI Intake</p>
-          <h1>Upload & Index Legal Documents</h1>
+          <h1>Upload, Review, Approve</h1>
           <p class="subtitle">
-            Upload either Bare Acts or Case Law with required metadata. The file is
-            processed and ingested into Qdrant from this form.
+            Upload a PDF and select document type. Metadata is auto-extracted
+            via OCR, then admin can verify or edit before approving ingestion.
           </p>
         </header>
 
@@ -37,58 +37,92 @@
 
             <label class="field field-file">
               <span>PDF Document</span>
-              <input id="document" name="document" type="file" accept="application/pdf" required />
-            </label>
-
-            <label class="field">
-              <span>Citation</span>
-              <input id="citation" name="citation" type="text" placeholder="e.g. Indian Contract Act, 1872" required />
-            </label>
-
-            <label class="field">
-              <span>Judgment / Act Year</span>
-              <input id="judgmentDate" name="judgmentDate" type="text" placeholder="e.g. 1872" />
-            </label>
-
-            <label class="field">
-              <span>Jurisdiction</span>
-              <input id="jurisdiction" name="jurisdiction" type="text" value="India" />
-            </label>
-          </div>
-
-          <div id="caseFields" class="field-grid type-fields">
-            <label class="field">
-              <span>Case Name</span>
-              <input id="caseName" name="caseName" type="text" placeholder="e.g. Carlill v Carbolic Smoke Ball Co" />
-            </label>
-            <label class="field">
-              <span>Court</span>
-              <input id="court" name="court" type="text" placeholder="e.g. Supreme Court of India" />
-            </label>
-            <label class="field">
-              <span>Bench</span>
-              <input id="bench" name="bench" type="text" placeholder="Optional" />
-            </label>
-          </div>
-
-          <div id="bareActFields" class="field-grid type-fields hidden">
-            <label class="field">
-              <span>Act Name</span>
-              <input id="actName" name="actName" type="text" placeholder="e.g. Indian Contract Act" />
-            </label>
-            <label class="field">
-              <span>Section Number</span>
-              <input id="sectionNo" name="sectionNo" type="text" placeholder="Optional" />
+              <input
+                id="document"
+                name="document"
+                type="file"
+                accept="application/pdf"
+                required
+              />
             </label>
           </div>
 
           <button id="submitBtn" class="submit-btn" type="submit">
-            <span class="btn-label">Upload & Start Indexing</span>
+            <span class="btn-label">Extract Document Data</span>
             <span class="btn-loader" aria-hidden="true"></span>
           </button>
 
-          <p id="statusBox" class="status-box" role="status" aria-live="polite"></p>
+          <p
+            id="statusBox"
+            class="status-box"
+            role="status"
+            aria-live="polite"
+          ></p>
         </form>
+
+        <section id="reviewPanel" class="review-panel hidden">
+          <div class="review-head review-head--stacked">
+            <div>
+              <h2>Review Extracted Document</h2>
+              <p>
+                The PDF is shown below. You can edit the extracted text blocks
+                before approving and saving to the database.
+              </p>
+            </div>
+            <a id="openPdfLink" class="ghost-link" href="#" target="_blank">
+              Open PDF in new tab
+            </a>
+          </div>
+
+          <div class="review-layout">
+            <section class="viewer-panel">
+              <div class="preview-head">
+                <h3>PDF Preview</h3>
+              </div>
+              <iframe
+                id="pdfPreviewFrame"
+                class="pdf-frame"
+                title="Uploaded PDF preview"
+              ></iframe>
+            </section>
+
+            <section class="editor-panel">
+              <form id="reviewForm" class="review-form" novalidate>
+                <div class="preview-head">
+                  <h3>Editable Metadata</h3>
+                </div>
+                <div id="reviewFields" class="field-grid"></div>
+
+                <div class="page-review-toolbar">
+                  <div>
+                    <h3>Editable Extracted Text</h3>
+                    <p id="pageReviewMeta" class="page-review-meta"></p>
+                  </div>
+                  <div class="page-review-controls">
+                    <button id="pagePrevBtn" class="pager-btn" type="button">
+                      Previous
+                    </button>
+                    <select id="pageSelect" class="page-select"></select>
+                    <button id="pageNextBtn" class="pager-btn" type="button">
+                      Next
+                    </button>
+                  </div>
+                </div>
+                <div id="pagePreviewList" class="preview-list"></div>
+
+                <div class="review-actions">
+                  <button id="approveBtn" class="submit-btn" type="submit">
+                    <span class="btn-label">Approve & Save To DB</span>
+                    <span class="btn-loader" aria-hidden="true"></span>
+                  </button>
+                  <button id="rejectBtn" class="ghost-btn" type="button">
+                    Reject Draft Upload
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
+        </section>
       </section>
     </main>
 

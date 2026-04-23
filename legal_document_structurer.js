@@ -23,7 +23,9 @@ function buildBaseMetadata(sourcePath, metadataOverrides = {}) {
   return {
     source: sourcePath,
     legal_doc_type: String(
-      metadataOverrides.legal_doc_type || process.env.LEGAL_DOC_TYPE || "case_law",
+      metadataOverrides.legal_doc_type ||
+        process.env.LEGAL_DOC_TYPE ||
+        "case_law",
     ).toLowerCase(),
     act_name: metadataOverrides.act_name || process.env.LEGAL_ACT_NAME || "",
     section_no:
@@ -35,7 +37,9 @@ function buildBaseMetadata(sourcePath, metadataOverrides = {}) {
     judgment_date:
       metadataOverrides.judgment_date || process.env.LEGAL_DATE || "",
     jurisdiction:
-      metadataOverrides.jurisdiction || process.env.LEGAL_JURISDICTION || "India",
+      metadataOverrides.jurisdiction ||
+      process.env.LEGAL_JURISDICTION ||
+      "India",
   };
 }
 

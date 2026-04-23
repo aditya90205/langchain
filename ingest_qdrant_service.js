@@ -129,7 +129,12 @@ async function upsertCollectionBatches(
   return insertedCount;
 }
 
-export async function ingestLegalDocument({ pdfPath, metadata, logger = console }) {
+export async function ingestLegalDocument({
+  pdfPath,
+  metadata,
+  rawDocsOverride,
+  logger = console,
+}) {
   if (!pdfPath) {
     throw new Error("pdfPath is required for ingestion.");
   }
@@ -143,9 +148,19 @@ export async function ingestLegalDocument({ pdfPath, metadata, logger = console 
   const qdrantConfig = resolveQdrantConfig();
   logger.log("Starting structured legal data ingestion for Qdrant...");
 
-  const { docs: rawDocs, usedOcr, strategy } = await loadPdfDocumentsForIndexing(
-    pdfPath,
-  );
+  let rawDocs;
+  let usedOcr = false;
+  let strategy = "native-pdf-text";
+
+  if (Array.isArray(rawDocsOverride) && rawDocsOverride.length) {
+    rawDocs = rawDocsOverride;
+    strategy = "manual-review-edits";
+  } else {
+    const loaded = await loadPdfDocumentsForIndexing(pdfPath);
+    rawDocs = loaded.docs;
+    usedOcr = loaded.usedOcr;
+    strategy = loaded.strategy;
+  }
 
   logger.log(
     `PDF processed with strategy: ${strategy}. Total pages/sections: ${rawDocs.length}`,
