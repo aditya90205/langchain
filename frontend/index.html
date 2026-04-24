@@ -15,7 +15,56 @@
   <body>
     <div class="scene-bg"></div>
     <main class="shell">
-      <section class="upload-card">
+      <section id="authCard" class="auth-card">
+        <header class="card-header">
+          <p class="eyebrow">Restricted Access</p>
+          <h1>Login To Continue</h1>
+          <p class="subtitle">
+            This panel is currently protected with frontend-only credentials.
+            Enter the configured email and password to access upload and review.
+          </p>
+        </header>
+
+        <form id="loginForm" class="upload-form" novalidate>
+          <div class="field-grid field-grid--single">
+            <label class="field">
+              <span>Email</span>
+              <input
+                id="loginEmail"
+                name="email"
+                type="email"
+                autocomplete="email"
+                required
+              />
+            </label>
+
+            <label class="field">
+              <span>Password</span>
+              <input
+                id="loginPassword"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                required
+              />
+            </label>
+          </div>
+
+          <button id="loginBtn" class="submit-btn" type="submit">
+            <span class="btn-label">Login</span>
+            <span class="btn-loader" aria-hidden="true"></span>
+          </button>
+
+          <p
+            id="loginStatusBox"
+            class="status-box"
+            role="status"
+            aria-live="polite"
+          ></p>
+        </form>
+      </section>
+
+      <section id="protectedApp" class="upload-card hidden">
         <header class="card-header">
           <p class="eyebrow">Legal AI Intake</p>
           <h1>Upload, Review, Approve</h1>

@@ -1,3 +1,11 @@
+const loginForm = document.getElementById("loginForm");
+const loginEmailInput = document.getElementById("loginEmail");
+const loginPasswordInput = document.getElementById("loginPassword");
+const loginStatusBox = document.getElementById("loginStatusBox");
+const loginBtn = document.getElementById("loginBtn");
+const authCard = document.getElementById("authCard");
+const protectedApp = document.getElementById("protectedApp");
+
 const uploadForm = document.getElementById("uploadForm");
 const docTypeSelect = document.getElementById("docType");
 const statusBox = document.getElementById("statusBox");
@@ -19,6 +27,13 @@ const API_BASE_URL =
   window.location.port === "5500" || window.location.port === "5501"
     ? "http://127.0.0.1:3000"
     : "";
+
+const DEFAULT_AUTH = {
+  email: "admin@legalai.com",
+  password: "Admin@123",
+};
+
+const AUTH_SESSION_KEY = "legal-ai-authenticated";
 
 let activeReviewToken = "";
 let activeReviewDocType = "case_law";
@@ -42,6 +57,66 @@ function setStatus(message, type = "") {
   statusBox.classList.remove("success", "error");
   if (type) {
     statusBox.classList.add(type);
+  }
+}
+
+function setLoginStatus(message, type = "") {
+  loginStatusBox.textContent = message;
+  loginStatusBox.classList.remove("success", "error");
+  if (type) {
+    loginStatusBox.classList.add(type);
+  }
+}
+
+function setAuthView(isAuthenticated) {
+  authCard.classList.toggle("hidden", isAuthenticated);
+  protectedApp.classList.toggle("hidden", !isAuthenticated);
+}
+
+function isAuthenticatedInSession() {
+  return sessionStorage.getItem(AUTH_SESSION_KEY) === "true";
+}
+
+function markAuthenticated() {
+  sessionStorage.setItem(AUTH_SESSION_KEY, "true");
+}
+
+function validateLogin(email, password) {
+  return (
+    email.toLowerCase() === DEFAULT_AUTH.email.toLowerCase() &&
+    password === DEFAULT_AUTH.password
+  );
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  setLoginStatus("");
+
+  const email = String(loginEmailInput.value || "").trim();
+  const password = String(loginPasswordInput.value || "");
+
+  if (!email || !password) {
+    setLoginStatus("Please enter email and password.", "error");
+    return;
+  }
+
+  setButtonLoading(loginBtn, "Checking...", "Login", true);
+
+  try {
+    const ok = validateLogin(email, password);
+    if (!ok) {
+      throw new Error("Invalid credentials. Please try again.");
+    }
+
+    markAuthenticated();
+    setAuthView(true);
+    loginForm.reset();
+    setLoginStatus("");
+    setStatus("Welcome. You are now logged in.", "success");
+  } catch (error) {
+    setLoginStatus(error.message || "Invalid credentials.", "error");
+  } finally {
+    setButtonLoading(loginBtn, "Checking...", "Login", false);
   }
 }
 
@@ -200,6 +275,10 @@ function renderReview(data, docType) {
       continue;
     }
 
+    if (docType === "bare_act" && field.key === "bench") {
+      continue;
+    }
+
     reviewFields.appendChild(
       buildFieldInput(field, data.metadata?.[field.key]),
     );
@@ -228,6 +307,11 @@ function renderReview(data, docType) {
 
 function collectReviewedMetadata() {
   const formData = new FormData(reviewForm);
+  const benchValue =
+    activeReviewDocType === "bare_act"
+      ? ""
+      : String(formData.get("bench") || "").trim();
+
   return {
     legal_doc_type: activeReviewDocType,
     case_name: String(formData.get("case_name") || "").trim(),
@@ -235,7 +319,7 @@ function collectReviewedMetadata() {
     section_no: String(formData.get("section_no") || "").trim(),
     citation: String(formData.get("citation") || "").trim(),
     court: String(formData.get("court") || "").trim(),
-    bench: String(formData.get("bench") || "").trim(),
+    bench: benchValue,
     judgment_date: String(formData.get("judgment_date") || "").trim(),
     jurisdiction: String(formData.get("jurisdiction") || "India").trim(),
   };
@@ -438,6 +522,7 @@ async function rejectReviewedUpload() {
 uploadForm.addEventListener("submit", submitUpload);
 reviewForm.addEventListener("submit", approveReviewedUpload);
 rejectBtn.addEventListener("click", rejectReviewedUpload);
+loginForm.addEventListener("submit", handleLogin);
 pagePrevBtn.addEventListener("click", () => {
   goToReviewPage(activeReviewPageIndex - 1);
 });
@@ -447,3 +532,5 @@ pageNextBtn.addEventListener("click", () => {
 pageSelect.addEventListener("change", (event) => {
   goToReviewPage(Number(event.target.value || 0));
 });
+
+setAuthView(isAuthenticatedInSession());
