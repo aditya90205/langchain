@@ -1,6 +1,7 @@
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { QdrantClient } from "@qdrant/js-client-rest";
+import { Document } from "@langchain/core/documents";
 import { loadPdfDocumentsForIndexing } from "./pdf_loader_with_ocr.js";
 import { structureLegalDocuments } from "./legal_document_structurer.js";
 
@@ -129,10 +130,43 @@ async function upsertCollectionBatches(
   return insertedCount;
 }
 
+function applyReviewedPageEdits(rawDocs, editedPages = []) {
+  const editedMap = new Map(
+    (Array.isArray(editedPages) ? editedPages : [])
+      .map((page) => ({
+        pageNo: Number(page.page),
+        text: String(page.text || "").trim(),
+      }))
+      .filter((entry) => entry.pageNo > 0 && entry.text.length > 0)
+      .map((entry) => [entry.pageNo, entry.text]),
+  );
+
+  if (!editedMap.size) {
+    return rawDocs;
+  }
+
+  return rawDocs.map((doc, idx) => {
+    const pageNo = Number(doc.metadata?.page || idx + 1);
+    const editedText = editedMap.get(pageNo);
+    if (!editedText) {
+      return doc;
+    }
+
+    return new Document({
+      pageContent: editedText,
+      metadata: {
+        ...(doc.metadata || {}),
+        reviewed: true,
+        edited: true,
+      },
+    });
+  });
+}
+
 export async function ingestLegalDocument({
   pdfPath,
   metadata,
-  rawDocsOverride,
+  editedPages,
   logger = console,
 }) {
   if (!pdfPath) {
@@ -148,18 +182,14 @@ export async function ingestLegalDocument({
   const qdrantConfig = resolveQdrantConfig();
   logger.log("Starting structured legal data ingestion for Qdrant...");
 
-  let rawDocs;
-  let usedOcr = false;
-  let strategy = "native-pdf-text";
+  const loaded = await loadPdfDocumentsForIndexing(pdfPath);
+  let rawDocs = loaded.docs;
+  const usedOcr = loaded.usedOcr;
+  let strategy = loaded.strategy;
 
-  if (Array.isArray(rawDocsOverride) && rawDocsOverride.length) {
-    rawDocs = rawDocsOverride;
-    strategy = "manual-review-edits";
-  } else {
-    const loaded = await loadPdfDocumentsForIndexing(pdfPath);
-    rawDocs = loaded.docs;
-    usedOcr = loaded.usedOcr;
-    strategy = loaded.strategy;
+  rawDocs = applyReviewedPageEdits(rawDocs, editedPages);
+  if (Array.isArray(editedPages) && editedPages.length > 0) {
+    strategy = `${strategy}+manual-page-edits`;
   }
 
   logger.log(

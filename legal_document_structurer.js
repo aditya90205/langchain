@@ -19,27 +19,61 @@ function sanitizeText(text) {
     .trim();
 }
 
+function pickMetadataValue(overrideValue, envValue, fallbackValue = "") {
+  if (overrideValue === undefined || overrideValue === null) {
+    return envValue ?? fallbackValue;
+  }
+
+  return overrideValue;
+}
+
 function buildBaseMetadata(sourcePath, metadataOverrides = {}) {
   return {
     source: sourcePath,
     legal_doc_type: String(
-      metadataOverrides.legal_doc_type ||
-        process.env.LEGAL_DOC_TYPE ||
+      pickMetadataValue(
+        metadataOverrides.legal_doc_type,
+        process.env.LEGAL_DOC_TYPE,
         "case_law",
+      ),
     ).toLowerCase(),
-    act_name: metadataOverrides.act_name || process.env.LEGAL_ACT_NAME || "",
-    section_no:
-      metadataOverrides.section_no || process.env.LEGAL_SECTION_NO || "",
-    case_name: metadataOverrides.case_name || process.env.LEGAL_CASE_NAME || "",
-    citation: metadataOverrides.citation || process.env.LEGAL_CITATION || "",
-    court: metadataOverrides.court || process.env.LEGAL_COURT || "",
-    bench: metadataOverrides.bench || process.env.LEGAL_BENCH || "",
-    judgment_date:
-      metadataOverrides.judgment_date || process.env.LEGAL_DATE || "",
-    jurisdiction:
-      metadataOverrides.jurisdiction ||
-      process.env.LEGAL_JURISDICTION ||
-      "India",
+    act_name: String(
+      pickMetadataValue(metadataOverrides.act_name, process.env.LEGAL_ACT_NAME),
+    ),
+    section_no: String(
+      pickMetadataValue(
+        metadataOverrides.section_no,
+        process.env.LEGAL_SECTION_NO,
+      ),
+    ),
+    case_name: String(
+      pickMetadataValue(
+        metadataOverrides.case_name,
+        process.env.LEGAL_CASE_NAME,
+      ),
+    ),
+    citation: String(
+      pickMetadataValue(metadataOverrides.citation, process.env.LEGAL_CITATION),
+    ),
+    court: String(
+      pickMetadataValue(metadataOverrides.court, process.env.LEGAL_COURT),
+    ),
+    bench: String(
+      pickMetadataValue(metadataOverrides.bench, process.env.LEGAL_BENCH),
+    ),
+    judgment_date: String(
+      pickMetadataValue(
+        metadataOverrides.judgment_date,
+        process.env.LEGAL_DATE,
+      ),
+    ),
+    jurisdiction: String(
+      pickMetadataValue(
+        metadataOverrides.jurisdiction,
+        process.env.LEGAL_JURISDICTION,
+        "India",
+      ),
+    ),
   };
 }
 
@@ -125,6 +159,21 @@ function splitBareActSections(rawDocs, baseMetadata) {
   return sections;
 }
 
+function estimateCoverageRatio(rawDocs, bareActSections) {
+  const fullText = sanitizeText(
+    rawDocs.map((doc) => doc.pageContent).join("\n"),
+  );
+  if (!fullText.length) {
+    return 0;
+  }
+
+  const coveredTextLength = bareActSections.reduce((sum, doc) => {
+    return sum + sanitizeText(doc.pageContent).length;
+  }, 0);
+
+  return coveredTextLength / fullText.length;
+}
+
 async function fallbackSplit(rawDocs, baseMetadata, chunkType) {
   const splitter = new RecursiveCharacterTextSplitter({
     chunkSize: 900,
@@ -146,6 +195,26 @@ async function fallbackSplit(rawDocs, baseMetadata, chunkType) {
   );
 }
 
+async function chunkBareActSectionDocs(sectionDocs) {
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 900,
+    chunkOverlap: 150,
+  });
+
+  const chunked = await splitter.splitDocuments(sectionDocs);
+  return chunked.map(
+    (doc, idx) =>
+      new Document({
+        pageContent: sanitizeText(doc.pageContent),
+        metadata: {
+          ...(doc.metadata || {}),
+          chunk_type: "bare_act_section",
+          section_chunk_no: idx + 1,
+        },
+      }),
+  );
+}
+
 export async function structureLegalDocuments(
   rawDocs,
   sourcePath,
@@ -160,12 +229,16 @@ export async function structureLegalDocuments(
 
   if (docType === "bare_act") {
     bareActSections = splitBareActSections(rawDocs, baseMetadata);
-    if (!bareActSections.length) {
+    const sectionCoverage = estimateCoverageRatio(rawDocs, bareActSections);
+
+    if (!bareActSections.length || sectionCoverage < 0.9) {
       bareActSections = await fallbackSplit(
         rawDocs,
         baseMetadata,
         "bare_act_section",
       );
+    } else {
+      bareActSections = await chunkBareActSectionDocs(bareActSections);
     }
   } else {
     caseParagraphs = splitCaseParagraphs(rawDocs, baseMetadata);

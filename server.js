@@ -103,7 +103,12 @@ function validateMetadataForIngest(metadata) {
 
 function readPattern(text, pattern) {
   const match = text.match(pattern);
-  return match ? String(match[1]).trim() : "";
+  if (!match) {
+    return "";
+  }
+
+  const capturedValue = match[match.length - 1];
+  return capturedValue ? String(capturedValue).trim() : "";
 }
 
 function extractAutoMetadata(text, docType) {
@@ -214,7 +219,8 @@ async function pruneExpiredReviewSessions() {
 }
 
 app.use(express.static(path.join(__dirname, "frontend")));
-app.use(express.json());
+app.use(express.json({ limit: "25mb" }));
+app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
 app.post(
   "/api/upload-document/preview",
@@ -307,17 +313,12 @@ app.post("/api/upload-document/approve", async (req, res) => {
       ? req.body.editedPages
       : [];
 
-    const reviewDocs = reviewSession.reviewDocs || [];
-    const rawDocsOverride = reviewDocs.length
-      ? buildEditedDocs(reviewDocs, editedPages)
-      : null;
-
     validateMetadataForIngest(metadata);
 
     const result = await ingestLegalDocument({
       pdfPath: reviewSession.filePath,
       metadata,
-      rawDocsOverride,
+      editedPages,
       logger: console,
     });
 

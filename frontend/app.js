@@ -288,6 +288,7 @@ function renderReview(data, docType) {
     ? data.pages.map((page) => ({
         page: Number(page.page),
         text: String(page.text || page.preview || "").trim(),
+        originalText: String(page.text || page.preview || "").trim(),
       }))
     : [];
   activeReviewPageIndex = 0;
@@ -327,7 +328,15 @@ function collectReviewedMetadata() {
 
 function collectEditedPages() {
   return activeReviewPages
-    .filter((page) => Number(page.page) > 0)
+    .filter((page) => {
+      if (Number(page.page) <= 0) {
+        return false;
+      }
+
+      const original = String(page.originalText || "").trim();
+      const edited = String(page.text || "").trim();
+      return edited !== original;
+    })
     .map((page) => ({
       page: Number(page.page),
       text: String(page.text || "").trim(),
